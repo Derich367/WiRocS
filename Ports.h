@@ -705,7 +705,12 @@ boolean Debounce(int i) {  //Tests for inputs having changed,
 //below here was x2 in subroutines
 
 int FlashHL(int state, int port) {
-  int value;
+  return FlashHL(state,port,0);
+}
+
+
+int FlashHL(int state,int port, int valueSet){
+   int value = 0;
   if (state == 0) {
     value = (Pi03_Setting_offposH[port] * 256) + Pi03_Setting_offposL[port];
   }
@@ -713,6 +718,15 @@ int FlashHL(int state, int port) {
     value = (Pi03_Setting_onposH[port] * 256) + Pi03_Setting_onposL[port];
   }
   value = ((value / 4)); //set the PWM  range 0-1023
+  if (state == 2){
+      value = valueSet * 4; //value set max 255 . 
+  }  
+  if (value < 0){
+    value = 0;
+  }
+  if(value > 1023){
+    value = 1023;
+  }  
   return (value) ;
 }
 

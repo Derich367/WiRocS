@@ -30,6 +30,7 @@ int LastSFX1,LastSFX0;
 extern void SERVOS(void);
 extern uint16_t servoLR(int state, int port);
 extern int FlashHL(int state, int port);
+extern int FlashHL(int state, int port, int valueSet);
 extern bool IsServo(uint8_t i);
 extern bool IsPWM(uint8_t i);
 extern bool IsInput(uint8_t i);
@@ -1300,25 +1301,34 @@ void ROC_Outputs() { //group 9
         Message_Decoded = true; //we understand these even if they are not for us
         if ( (ROC_recipient ==   RocNodeID) ) {
           boolean STATE; 
-          STATE = ROC_Data[4];      
+          STATE = ROC_Data[4]; 
+          int port = ROC_Data[5];    
+          int setValue =  ROC_Data[7];    
        
-        if ((ROC_Data[5]>= 1) && (ROC_Data[5]<= NumberOfPorts)&& (OKtoWrite)){ //in our available port range? 
-          if (!IsInput(ROC_Data[5])) {           //is this port an output, check  first make sure its an output!             
+        if ((port>= 1) && (port<= NumberOfPorts)&& (OKtoWrite)){ //in our available port range? 
+          if (!IsInput(port)) {           //is this port an output, check  first make sure its an output!             
                                                        
-            if (IsServo(ROC_Data[5])) {   //SERVO?....To address a channel instead of a port the port type servo must be set on the interface tab of switches and outputs
-                  SDemand[ROC_Data[5]] = ROC_Data[7];//just setting sdemand allows "servos" to drive the servo to the desired position 
-                  if (SDemand[ROC_Data[5]] >= 180) {  //set limits 
-                                   SDemand[ROC_Data[5]] = 180;
+            if (IsServo(port)) {   //SERVO?....To address a channel instead of a port the port type servo must be set on the interface tab of switches and outputs
+                  SDemand[port] =setValue;//just setting sdemand allows "servos" to drive the servo to the desired position 
+                  if (SDemand[port] >= 180) {  //set limits 
+                                   SDemand[port] = 180;
                                               }
-                  if (SDemand[ROC_Data[5]] <= 0) {    //set limit
-                                   SDemand[ROC_Data[5]] = 0;
+                  if (SDemand[port] <= 0) {    //set limit
+                                   SDemand[port] = 0;
                                               }
-                  Pi03_Setting_LastUpdated[ROC_Data[5]] = millis();  
-                  ButtonState[ROC_Data[5]] = 2;
-                // DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO %d () to State(%d) = Position:%d ",ROC_Data[4],STATE,SDemand[ROC_Data[4]])); 
-                 if (OKtoWrite)   {    DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO Output D%d to State(%d) = Position:%d",ROC_Data[5],STATE,SDemand[ROC_Data[5]]));}
+                  Pi03_Setting_LastUpdated[port] = millis();  
+                  ButtonState[port] = 2;
+                 if (OKtoWrite)   {    DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO Output D%d to State(%d) = Position:%d",port,STATE,SDemand[port]));}
                    
                }//   End of servo  
+             else if (IsPWM(port)) {//is PWM outputs as settings for on and off channel positions
+                          PortTimingDelay[port] = millis() + (DelaySetting_for_PortD[port] * 10);                                  
+                          WriteAnalogtoPort(port, FlashHL(2,port,setValue));   //set pwm, arduino range is 0-1023, rocrail has 0-4095 range
+                          SDemand[port] = FlashHL(2, port,setValue); //save  what we have set for flashing 
+                          if(PortFlashing(port)){  //flashing // add rate?
+                              DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting PWM Output D%d FLASHING @%dms  (GPIO)%d to %d%%",port,DelaySetting_for_PortD[port]*10,NodeMCUPinD[port], 100-(SDemand[port]*100/1023))); 
+                  }
+             }
           }
         }
         }
