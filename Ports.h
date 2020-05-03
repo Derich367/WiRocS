@@ -1,6 +1,6 @@
 #ifndef Ports_h
  #define Ports_h
-#include <Stepper.h>
+
 
 
 bool ButtonState[PortsRange];
@@ -414,7 +414,7 @@ void ReadInputPorts() {
  
   
 }
-extern bool OLED1Present,OLED2Present,OLED3Present,OLED4Present,OLED5Present,OLED6Present;
+
 
 void Port_Mode_Set(int i) {
   boolean hardset,setElsewhere, output,pullup,DebugMsgSend;
@@ -552,18 +552,7 @@ void Port_Mode_Set(int i) {
 
 
                       
-#ifdef _OLED    
-    if((OLED1Present||OLED3Present||OLED5Present)&&((NodeMCUPinD[i]==OLED_SCL)||(NodeMCUPinD[i]==OLED_SDA))){
-      description ="OLED I2C bus";bitSet(Pi02_Port_Settings_D[i],_input ); 
-                      Pi03_Setting_options[i] = 0; 
-      hardset =true;output=false;pullup=false;setElsewhere = true;
-      }
-       if((OLED2Present||OLED4Present||OLED6Present)&&((NodeMCUPinD[i]==OLED_SCL2)||(NodeMCUPinD[i]==OLED_SDA2))){
-      description ="OLED I2C bus";bitSet(Pi02_Port_Settings_D[i],_input ); 
-                      Pi03_Setting_options[i] = 0; 
-      hardset =true;output=false;pullup=false;setElsewhere = true;
-      }
-#endif
+
     
     if((NodeMCUPinD[i]>=34)&& (NodeMCUPinD[i]<=39)){
                       description ="Input NO PULLUP ";pullup=false;
@@ -902,7 +891,13 @@ uint16_t servoLR(int state, int port) {
   if (state == 1) {
     value = (Pi03_Setting_onposH[port] * 256) + Pi03_Setting_onposL[port];
   }
-  value = ((value - 150) * 2) / 5; //set the servo immediately range 150-600 = 0 to 180
+
+   if (value >= 180) {  //set limits 
+                                   value = 180;
+                                              }
+   if (value <= 0) {    //set limit
+                                  value = 0;
+                                              }
   return   (value);
 }
 
@@ -922,6 +917,7 @@ void SERVOS() {              //attaches and detaches servos, accelerates to dema
 #endif
     if (IsServo(i)) { //only if this port is a "servo"... To address a channel instead of a port the port type servo must be set on the interface tab of switches and outputs
         if (millis() >= (Pi03_Setting_LastUpdated[i] + (Pi03_Setting_options[i] & 15) * 10)) { //do update only at the required delay update rate
+
                  offset = SDemand[i] - ServoLastPos[i];  //how far from the S_demand are we
                  ServoPositionNow=ServoLastPos[i]; 
       if ((abs(offset) <= 3) && (PortFlashing(i))  && (ButtonState[i] == 1) ) { //REVERSING (Flashing):demand if within 3 of demand and reversing...needs inv to operate on buttonstate, ???as it will not switch off if inv..
@@ -936,14 +932,15 @@ void SERVOS() {              //attaches and detaches servos, accelerates to dema
      
         if (abs(offset) != 0) {  //we are not at the right position yet....
           ServoOff_Delay_Until[i] = LocalTimer + 2000; //2s sec off timer start but only do if the servo is NOT in the final position, when its in final position, it does NOT update
-          if (ButtonState[i]) {   steps = Pi03_Setting_onsteps[i];  }
-               else           {   steps = Pi03_Setting_offsteps[i]; }
+          if (ButtonState[i] == 1) {   steps = Pi03_Setting_onsteps[i];  }
+               else if (ButtonState[i] == 0) {   steps = Pi03_Setting_offsteps[i]; }
+               else {   steps = 0; }
               
           if (steps == 0)     {   SERVOSET = SDemand[i];
 //#ifdef _SERVO_DEBUG
 //                           DebugSprintfMsgSend( sprintf ( DebugMsg, "Set Servo Immediately"));
 //#endif
-                              }
+                              }      
        else {    //steps not == zero
        //if (i!=_LOCO_SERVO_Driven_Port){ //not for loco 
         steps=1; //force steps to 1 to prevent a strange servo behaviour where the servo jitters unstably around the end position.. which does not affect the RC controller for some reason 

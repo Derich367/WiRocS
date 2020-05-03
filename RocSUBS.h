@@ -1,5 +1,6 @@
 #ifndef RocSubs_h
  #define RocSubs_h
+ #include <Stepper.h>
 
 uint8_t LastSetSpeed;
 uint32_t PingSendTime;
@@ -38,8 +39,7 @@ extern int DCC_Speed_Demand;
 extern int Last_DCC_Speed_Demand;
 uint8_t DIRF = 0 ;
 extern IPAddress mosquitto;
-extern bool OLED1Present,OLED2Present,OLED3Present,OLED4Present,OLED5Present,OLED6Present;
-extern uint8_t OLED_Settings[7];
+
 
 #define Recipient_Addr  1   //use with SetWordIn_msg_loc_value(sendMessage,Recipient_Addr,data  , or get sender or recipient addr  
 #define Sender_Addr 3       //use with SetWordIn_msg_loc_value(sendMessage,Sender_Addr,data   
@@ -65,7 +65,6 @@ extern uint32_t StartedAt;
 #include "EEPROMDEFAULTS.h"
  
 extern void SetDefaultSVs(); // moved to EEPROMDEFAULTS.h
-extern void OLEDsettingView(int OLed_x);
 
 
 //extern uint8_t Interpolate(uint8_t Input,uint8_t lowerout,uint8_t upperout,uint8_t lowerin,uint8_t upperin);
@@ -307,15 +306,8 @@ for (int i = 1; i <= 35 ; i++) {
     EEPROM.write(BrokerEEPROMLocation,BrokerAddr);
     EEPROM.write(RocNodeIDLocation,RN[1]);
     EEPROM.write(RocNodeIDLocation+1,RN[2]);
-#ifdef  _ROCDISP_EEPROM_DEBUG
-Serial.println(" --------- Writing Oled Settings---------");
-#endif
-    for (byte i = 0; i <=6; i++) {
-      EEPROM.write(DisplayClockBoolEEPROMLocation+(i),OLED_Settings[i]);
-#ifdef  _ROCDISP_EEPROM_DEBUG
-OLEDsettingView(i);
-#endif
-                                 }
+
+                                 
 #ifdef  _ROCDISP_EEPROM_DEBUG
    Serial.println();
 #endif
@@ -387,16 +379,7 @@ void ReadEEPROM() {
   //EEPROMRocNodeID=(EEPROM.read(RocNodeIDLocation+1)*256)+EEPROM.read(RocNodeIDLocation);  // low then hi Plan to move to this from RocNodeID, or use it as backup
   wifiPassword=read_String(passwordEEPROMLocation);
   BrokerAddr=EEPROM.read(BrokerEEPROMLocation);
-  #ifdef  _ROCDISP_EEPROM_DEBUG
-Serial.println(" --------- Reading Oled Settings---------");
-#endif
-  for (byte i = 0; i <=6; i++) {
-     OLED_Settings[i]=EEPROM.read(DisplayClockBoolEEPROMLocation+i);;
-#ifdef  _ROCDISP_EEPROM_DEBUG
-    OLEDsettingView(i);
-#endif
-     
-            }
+
    #ifdef  _ROCDISP_EEPROM_DEBUG
    Serial.println();
    #endif
@@ -405,11 +388,7 @@ Serial.println(" --------- Reading Oled Settings---------");
    //Serial.print(" Copy of RocNodeID:");Serial.println(EEPROMRocNodeID);
    
 }
-uint8_t OLED_EEPROM_Setting(int OLed_x){
-  uint8_t Setting;
-  Setting=EEPROM.read(DisplayClockBoolEEPROMLocation+OLed_x);  
-  return Setting;
- }
+
 
 void ROCSerialPrint(uint8_t *msg)   {
   Serial.print("NetId  RidH  RidL   SidH  SidL  Grp   Code  Len");
@@ -688,7 +667,6 @@ void ROC_CLOCK() {
 }
 
 
-int NumberOfOLEDS;
 void ROC_NODE() { //stationary decoders GROUP 3
   uint8_t TEMP;
 
@@ -731,7 +709,6 @@ void ROC_NODE() { //stationary decoders GROUP 3
           //delay(subIPL*2); //prevent simultaneous responses to identify query
           MQTTSend("rocnet/dc", sendMessage);
           delay(100); //leave plenty of time before sending next mqtt 
-          DebugSprintfMsgSend( sprintf ( DebugMsg, "Ver <%d>  OLEDS<%d> Identifying ",SW_REV,NumberOfOLEDS));
           //ROCSerialPrint(sendMessage);
         }
         Message_Decoded = true;
@@ -766,12 +743,6 @@ void ROC_NODE() { //stationary decoders GROUP 3
       break;
     case 11:  {  //SHOW
         Message_Decoded = true; //we understand these even if they are not for us
-        if (millis()>=StartedAt+1000){
-        if ( (ROC_recipient ==   RocNodeID) || (    ROC_recipient ==   0)) {
-          FlashMessage("RocView Requests SHOW", 10, 500, 100);  //hold the LED on for 800ms, off for 800ms, 6 times!
-          }}
-
-        Message_Decoded = true;
       }
       break;
 
@@ -919,8 +890,6 @@ RNm[19]=0;  //020H  //Pi o2's
 RNm[20]=1; //020 l
 RNm[21]=0; //030 H //Pi04's? / here is 0x38
 RNm[22]=0;
-if (OLED1Present){bitSet(RNm[22],0);} //030 L ?? 
-if (OLED2Present){bitSet(RNm[22],1);}//not showing
 RNm[23]=0; //040 H  //Pi03's
 RNm[24]=1; //040 l
 RNm[25]=0; //adc thresh
@@ -1193,7 +1162,13 @@ RNm[27]=0; //050 L  set 1 for "0x50" 3 for 0x50,0x51 etc..NOT USED BY my code as
    //ROCRAIL DesiredPos uses 150-600 so need to change it before using with servo 
           if ((Pi03_Setting_options[ROC_Data[1]] & 32)==32) { ///SERVO....To address a channel instead of a port the port type servo must be set on the interface tab of switches and outputs
              DesiredPos = (ROC_Data[1 + 1] * 256) + ROC_Data[1 + 2];
-             SDemand[ROC_Data[1]] = ((DesiredPos - 150) * 2) / 5;  //why??  because it sets "demand" (in degrees) to set the servo position for test
+              if (DesiredPos >= 180) {  //set limits 
+                                   DesiredPos = 180;
+                                              }
+              if (DesiredPos <= 0) {    //set limit
+                                  DesiredPos = 0;
+                                              }
+             SDemand[ROC_Data[1]] = DesiredPos;  //why??  because it sets "demand" (in degrees) to set the servo position for test
              if (ROC_Data[4] == 1) { DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting Servo[%d] Right pos to:%d  (=%d degrees)",ROC_Data[1],DesiredPos,SDemand[ROC_Data[1]]));}
                                else{ DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting Servo[%d] Left pos to:%d  (=%d degrees)",ROC_Data[1],DesiredPos,SDemand[ROC_Data[1]]));}
              SERVOS();                                        } //set the servo immediately range 150-600 (rocrail limmits) = 0 to 180 so we can see the movement                                                }          
@@ -1258,7 +1233,7 @@ void ROC_Outputs() { //group 9
                   Pi03_Setting_LastUpdated[ROC_Data[4]] = millis();  
                   
                 // DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO %d () to State(%d) = Position:%d ",ROC_Data[4],STATE,SDemand[ROC_Data[4]])); 
-                 if (OKtoWrite)   {    DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO Output D%d to State(%d) = Position:%d ",ROC_Data[4],STATE,SDemand[ROC_Data[4]]));}
+                 if (OKtoWrite)   {    DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO Output D%d to State(%d) = Position:%d (Data2: %d Data3: %d)",ROC_Data[4],STATE,SDemand[ROC_Data[4]],ROC_Data[2],ROC_Data[3]));}
                    
                }//   End of servo                                         
           else {   //not servo Could be PWM or digital 
@@ -1319,7 +1294,36 @@ void ROC_Outputs() { //group 9
       }// sounds 
    } //recipient = node
    } //end case 1
+
       break;
+  case 14:  { //Signal (LED or Servo)
+        Message_Decoded = true; //we understand these even if they are not for us
+        if ( (ROC_recipient ==   RocNodeID) ) {
+          boolean STATE; 
+          STATE = ROC_Data[4];      
+       
+        if ((ROC_Data[5]>= 1) && (ROC_Data[5]<= NumberOfPorts)&& (OKtoWrite)){ //in our available port range? 
+          if (!IsInput(ROC_Data[5])) {           //is this port an output, check  first make sure its an output!             
+                                                       
+            if (IsServo(ROC_Data[5])) {   //SERVO?....To address a channel instead of a port the port type servo must be set on the interface tab of switches and outputs
+                  SDemand[ROC_Data[5]] = ROC_Data[7];//just setting sdemand allows "servos" to drive the servo to the desired position 
+                  if (SDemand[ROC_Data[5]] >= 180) {  //set limits 
+                                   SDemand[ROC_Data[5]] = 180;
+                                              }
+                  if (SDemand[ROC_Data[5]] <= 0) {    //set limit
+                                   SDemand[ROC_Data[5]] = 0;
+                                              }
+                  Pi03_Setting_LastUpdated[ROC_Data[5]] = millis();  
+                  ButtonState[ROC_Data[5]] = 2;
+                // DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO %d () to State(%d) = Position:%d ",ROC_Data[4],STATE,SDemand[ROC_Data[4]])); 
+                 if (OKtoWrite)   {    DebugSprintfMsgSend( sprintf ( DebugMsg, "Setting SERVO Output D%d to State(%d) = Position:%d",ROC_Data[5],STATE,SDemand[ROC_Data[5]]));}
+                   
+               }//   End of servo  
+          }
+        }
+        }
+    }
+    break;
 
 
   }//end of switch code
@@ -1352,51 +1356,14 @@ if (millis()>=StartedAt+1000){// but only after a second, to allow initial port 
 
 
 
-extern void SetupTextArrays(uint8_t ADDR,int Display,String Message);
-
-void ROC_DISPLAY() { //display Group 12 rocdisplay
-  Message_Decoded = false;
-  uint8_t Address;
-  uint8_t Display;
-  int MaxLen;
-  bool RocDFormat,Truncated;
-  char Message[252]; // big to accept long msg from rocrail
-  MaxLen=250;  //my original limit (was 110).. NEEDS Rocrail after 15322
-  RocDFormat=false;Truncated=false;
-  if  ((ROC_recipient ==   RocNodeID)||(ROC_recipient ==  0)){ // node 0 is global message
-      Address= ROC_Data[1];
-      Display= ROC_Data[2];
- #ifdef _ROCDISP_SUBS_DEBUG
-  Serial.println("");
-  Serial.print("RocMessage. Reported Total Text len=");Serial.print(ROC_len-3);Serial.print("  Text is:<"); 
- #endif
-    if (ROC_len-3>=MaxLen){ROC_len==MaxLen+3;Truncated=true; }              //  Rocrail seems to limit to len=113 anyway
-    for (uint16_t i = 0; i <= (ROC_len-3); i++) {     // start at i==0 first text character to display is ROC_Data[3] = Message[0] .. 
-                     Message[i]=char (ROC_Data[i+3]);
-                     if (ROC_Data[i+3]==123){RocDFormat=true;}               // testing for RocDisplay format and Adding a '{' so the last bits print if we have to truncate
-  #ifdef _ROCDISP_SUBS_DEBUG
-                     Serial.print(char(ROC_Data[i+3]));
-  #endif
-                     }
-    #ifdef _ROCDISP_SUBS_DEBUG 
-  Serial.println(">");
-  Serial.print("for node Addr<");Serial.print(Address);
-  Serial.print("> Display No {1-8}<");Serial.print(ROC_Data[2]);
-  Serial.print("> truncated? (for my add '{') <");Serial.print(Truncated);Serial.println(">");
-  #endif                 
-    if (Truncated&&RocDFormat){Message[ROC_len-3]=123;}                                // give it a { to initiate printing last bits of message                 
-
-    SetupTextArrays(Address,Display,Message);
-   
-   } // is display message
-   Message_Decoded = true;
- }
       
 
 void DoRocNet() {
   if (RocNodeID == IntFromPacket_at_Addr(sendMessage, Sender_Addr)){
         Message_Decoded = true;} //this is a reflected a message we originally sent
   if (Message_Length >= 1) { //have we recieved data?
+     DebugSprintfMsgSend( sprintf ( DebugMsg, "Got new Message: (ROC_Group: %d ROC_Code: %d Data1: %d Data2: %d Data3: %d Data4: %d Data5: %d Data6: %d Data7: %d)",ROC_group,ROC_code,ROC_Data[1],ROC_Data[2],ROC_Data[3],ROC_Data[4],ROC_Data[5],ROC_Data[6],ROC_Data[7]));
+    
     switch (ROC_group) {
       case 0:  {}    //{Host
         break;
@@ -1436,7 +1403,7 @@ void DoRocNet() {
         break;
       case 11:  {}    //Sound
         break;
-      case 12:  {ROC_DISPLAY();}    //Display
+      case 12:  {}    //Display
         break;
       default:  {}    //Default!!
         break;
