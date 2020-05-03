@@ -1783,12 +1783,7 @@ Serial.println("Setting default EEPROM Settings etc");
 #endif // esp32 station
 
 
-//-------------- put any hand crafted special settings here..-------------------
-//Set Clock ON, Analog and Right and NOT 32 display
-#ifdef _OLED
-extern void SetOLEDDefaults();
-SetOLEDDefaults();
-#endif
+
 
 #ifdef _LOCO_SERVO_Driven_Port
 

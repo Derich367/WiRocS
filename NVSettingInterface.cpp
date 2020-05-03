@@ -3,9 +3,6 @@
  
 extern String wifiSSID ;
 extern String wifiPassword;
-extern void OLED_4_RN_displays(int OLed_x,String L1,String L2,String L3,String L4);
-extern void SetFont(uint8_t Disp,uint8_t Font);
-//extern void OLED_5_line_display_p(String L1,String L2,String L3,String L4,String L5);
 extern int BrokerAddr;
 //  #include "Globals.h"
 extern uint8_t NodeMCUPinD[18]; // hard fixed //Number of ports +2//
@@ -31,11 +28,7 @@ int MSG_content_length(){
   return Length;
 }
 
-extern void OLEDS_Display(String L1,String L2,String L3,String L4);
-extern void OLED_Status(void);
-extern void DoFTP();
 extern void Status();
-extern void SetupFTP();
 extern void ImmediateStop();
 bool _ProcessedSerialInput;
 byte ndx;
@@ -61,7 +54,7 @@ void CheckForSerialInput(){
                                     Serial.println("--Serial port update Started--");
                                     Serial.print("  SSID currently is <");Serial.print(wifiSSID);Serial.print("> Password is <");Serial.print(wifiPassword); Serial.println(">");
                                     Serial.println("Type in New SSID");newData = false;SerioLevel=1;
-                                    countdown=100;OLEDS_Display("EEPROM settings required","Use Serial port @115200","To enter new data"," ");
+                                    countdown=100;
                                     
                                  }else{
                                     Serial.println("");
@@ -69,7 +62,7 @@ void CheckForSerialInput(){
                                     Serial.println(F("                   -- Use 'Newline' OR 'CR' to end input line  --"));
                                     Serial.println(F("~~~waiting~~~"));
                                     delay(10);Serial.print(CtrlE);delay(100);
-                                    countdown=10;OLEDS_Display("Node Start-Up","","","");delay(1000);
+                                    countdown=10;delay(1000);
                                     
                                        }
     Timestarted=millis();
@@ -77,25 +70,9 @@ void CheckForSerialInput(){
     #ifdef  _ROCDISP_EEPROM_DEBUG 
     countdown=1; 
     #endif
-    OLED_Status();// set up fonts etc?
     while ((countdown>= 0) || UpdateInProgress) {
-      if (SerioLevel==10){
-                        newData = false;
-                        OLEDS_Display("FTP ONLY","Switch off to reset","","");
-                        DoFTP();
-                        if ((millis()>= FlashTime)){FlashTime=millis()+1000; Serial.println("Connected and waiting for ftp HARD reset to escape");}
-                          #ifdef _LOCO_SERVO_Driven_Port        // need this to stop loco from running at full speed when just trying to do FTP               
-                              pinMode(NodeMCUPinD[_LOCO_SERVO_Driven_Port], OUTPUT);
-                              #ifdef _LocoPWMDirPort
-                              pinMode(NodeMCUPinD[_LocoPWMDirPort], OUTPUT);
-                              #endif
-                            ImmediateStop(); //stop motors as soon as setup set up
-                          #endif
-                          }
-      
-      if ((millis()>= FlashTime) && !UpdateInProgress) {Count=" Countdown:";Count+=countdown;
-                                                        FlashTime=millis()+1000; Serial.print(countdown);SignOfLifeFlash(LAMP) ;
-                                                        OLEDS_Display("Pausing for Serial I/O",Count,"","");delay(100);                    
+     if ((millis()>= FlashTime) && !UpdateInProgress) {Count=" Countdown:";Count+=countdown;
+                                                        FlashTime=millis()+1000; Serial.print(countdown);SignOfLifeFlash(LAMP) ;                
                                                         LAMP=!LAMP; countdown=countdown-1;}
                                                           
       delay(1); //Allow esp to process other events .. may not be needed, but here to be safe..                                      
@@ -110,7 +87,7 @@ void CheckForSerialInput(){
                                  if ((TestData=="xxx\0")){
                                     UpdateInProgress=true;
                                     //display.clear(); display.drawString(64, 32, "Type in New SSID"); display.display();
-                                    OLEDS_Display("Type in New SSID",""," ","");
+                                  
                                     Serial.println("-");
                                     Serial.println("--Update EEPROM Started--");
                                     Serial.print("  SSID currently is <");Serial.print(wifiSSID);Serial.println(">"); 
@@ -118,10 +95,8 @@ void CheckForSerialInput(){
                                      }
                           break;
                           case 1: if(MSG_content_length()>1) {wifiSSID=receivedChars;} newData = false;SerioLevel=2;
-                          MSGText1="SSID     <";
-                          MSGText1+=wifiSSID;
-                          MSGText1+=">";
-                                   OLEDS_Display(MSGText1,"Type Password"," "," ");
+                          
+                                   
                                    //display.clear(); display.drawString(64, 12, MSGText); display.display();
                                    Serial.print(" SSID<");Serial.print(wifiSSID);Serial.print("> current Password<");Serial.print(wifiPassword); Serial.println(">");
                                    Serial.println("Type in New Password");
@@ -130,20 +105,14 @@ void CheckForSerialInput(){
 
                           case 2:   
                                  if(MSG_content_length()>1) {wifiPassword=receivedChars;} newData = false;SerioLevel=3;
-                                 MSGText2="Password <";
-                                 MSGText2+=wifiPassword;
-                                 MSGText2+=">";
-                                 OLEDS_Display(MSGText1,MSGText2,"Broker addr?"," ");  //display.drawString(64, 24, MSGText); display.display();
+                                 
                                  Serial.print(" SSID<");Serial.print(wifiSSID);Serial.print("> Password<");Serial.print(wifiPassword); Serial.println(">");
                                  Serial.print("Broker Addr:");Serial.println(BrokerAddr);Serial.println("Type in MQTT Broker address");
                                     
                           break;
                           case 3:
                                  if(MSG_content_length()>1) {BrokerAddr= TestData.toInt();} newData = false;SerioLevel=4;
-                                 MSGText3="Broker Addr<";
-                                 MSGText3+=BrokerAddr;
-                                 MSGText3+=">";
-                                 OLEDS_Display(MSGText1,MSGText2,MSGText3," 'sss' to save");
+                                
                                  //display.drawString(64, 32, MSGText); display.display();
                                  Serial.print("Broker Addr:");Serial.print(BrokerAddr);Serial.print(" WiFi SSID<");Serial.print(wifiSSID);Serial.print("> Password<");Serial.print(wifiPassword); Serial.println(">");
                                  Serial.println("Please type 'sss' to save, or 'rrr' to return to start");
@@ -153,28 +122,24 @@ void CheckForSerialInput(){
                                 Serial.print("Settings are: Broker Addr:");Serial.print(BrokerAddr);Serial.print(" WiFi SSID<");Serial.print(wifiSSID);Serial.print("> Password<");Serial.print(wifiPassword); Serial.println(">");
                                 Serial.print("input was:");Serial.println(TestData);
                                  if (TestData=="sss\0"){
-                                    OLEDS_Display(MSGText1,MSGText2,MSGText3," Saving to EEPROM");
+                                 
                                     Serial.println("I will now save this data and continue");
                                     WriteWiFiSettings();
                                     UpdateInProgress=false;
                                     newData = false;SerioLevel=5;
                                                        }
                                  if ((TestData=="rrr\0")||(TestData=="xxx\0")){ 
-                                      OLEDS_Display("Resuming Serial Input","Type in xxx to restart","the input sequence"," ");
+                                    
                                          Serial.println("-----------------");Serial.println("---Starting again---");Serial.println(" Type xxx again to re-start WiFi Setup sequence");
                                         newData = false;SerioLevel=0;
                                                         }
                                  if ((TestData=="lll\0")||(TestData=="LLL\0")){ 
-                                      OLEDS_Display("Leaving Serial Input","","","");
+                                    
                                          Serial.println("Leaving Serial input function");
                                          UpdateInProgress=false;
                                           newData = false;SerioLevel=6;
                                                         }
-                                 if (TestData=="ftp\0"){ 
-                                          OLEDS_Display("Attempting WiFi connect for FTP"," ","","");
-                                          Status();SetupFTP();
-                                          newData = false;SerioLevel=10;
-                                 }
+                                
                            break;
 
                           case 5:

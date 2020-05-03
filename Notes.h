@@ -9,11 +9,6 @@ MQTT.cpp line 68
   All rights etc in Rocrail are owned by Rocrail..
   Visit the excellent Rocrail site to explore more: http://wiki.rocrail.net/doku.php?id=rocnet:rocnet-prot-en
 
-##AUDIO
-The code now supports audio for the loco. It uses a 4 phase chuff that is synchronous to the wheel speed (at least roughly) if you get the right factors set.
-It also plays 8 sound effects (F1.wav --F8.wav) on pressing the relevant F button on the rocrail trrottle controls. 
-The wav files are stored in the SPIFF, and MUST be uploaded to work. See the web for details of how to use SPIFF with Arduino. 
-There is a pin defined for synchronous smoke that can be used with "USB humidifier" hardware.
  
 
 
@@ -30,28 +25,9 @@ There is a pin defined for synchronous smoke that can be used with "USB humidifi
 
   REPORTING is NOT functional.
 
-##RFID reader
- The original code included an MRFC522 interface, and this has been retained, but untested in the latest versions. 
-  It will be incompatible with the Audio system unless the pinouts are modified.using Pins D0,D4, and D5,D6,D7. 
-  I originally modified my MRFC522 code to allow different (faster) SPI speeds, but it should work with the standard library. I believ ethe library has been updated since I last tested it.
-  When a Tag is seen it sends a "sensor change" to Rocrail. The sensor address is formed from the tag ID. 
-  This was planned to allow the loco to see multiple tags on the track, to self report its position.
-It works, but only when the loco is very slow. The response of the tag system is not fast enough to reliably see the tag when the loco is travelling fast.
-  
 
- ##LOCO interface
-  
-  The LOCO interface now expects a brushed RC servo motor interface on the pin defined by _LOCO_SERVO_Driven_Port
-  In this configuration, FRONTLight AND BACKLight operate on defined pins (defined in the .ino)
 
-   The code includes proper dcc interface for CV values, and expects to be "programmed using the POM".
-   It can send back values to Rocrail 's programming tab..
-   MAKE SURE that you have the CV set in the interface!. It defaults to 3 in the default eeprom settings. (ALL locos will try to respond if CV[1]=0 (and long address is 0) so chaos can be expected)
-   Once set, you should be able to address an individual loco and set and change CV.s I would recommend watching the serial terminal a t least the first few times to make sure the address is properly changed.
-   Setting CV[13] = 13 will force a reset to default values (and address=3 ) for the whole ESP.
-     
-    
-  WHEN USING ROCRAIL TO PROGRAM CV's, Select the loco (this selects the MQQT interafce) then program on Main(POM) (checkboxes acc off and Direct off)
+
 
 ##WIFI interface:
   I tested with  WiFiManager, and this is a selectable compiler option set n th e.ino. IF selected, on first run, the ESP will start an Access point "ROCNODE ESP AP".

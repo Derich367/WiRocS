@@ -14,8 +14,8 @@
 
  #define MinWiFi -85 // min (negative) wi fi signal for various options
  #define _Scan_for_Mosquitto  // New define to switch on scanning for mosquitto. Useful if your router does not have the IP address of the mosquitto server reserved!.
- 
-// -----------------------------------------------------------------------------------------------------------
+
+ // -----------------------------------------------------------------------------------------------------------
 // NB -- Loco use is incompatble with OLED - so the OLED define is later, and switched off if PWM is set. ----
 //------------------------------------------------------------------------------------------------------------
 //#define _LOCO_SERVO_Driven_Port 1  // D1 if using as mobile (LOCO) decoder node.. node becomes a loco with servo on port D "1"  for motor control
@@ -29,62 +29,9 @@
                                    //HOWEVER MY boards all exhibit strange behaviour after eeprom programming, when motor will only move one way.
 
 
-//#define _6612Driver              // much better hardware,  but more complex to drive, I will use it driving the two H drives with Enable being connected "on" via a simple Rc network. 
-  
- //assume if a loco then you need front and back lights...
- #ifdef _LOCO_SERVO_Driven_Port
-  #define BACKLight 2  //NodeMCU D2
-  #define FRONTLight 5 //NodeMCU D5
-//#define SteamOutputPin 6
- #endif
-
-
-
-//---------------AUDIO--------------------
-
-
-#define _AudioNoDAC  //to use Earle F Philhowers's audio libraries and his clever single transistor 1 bit oversampling dac for audio (connect D9 (rx)to base of NPN via a 1K, Emitter to ground and Collector is drive to speaker connected to V+) 
-
-// -- only used with the Audio DAc version.. --
-//#define _AudioDAC  //to use Earle F Philhowers's audio libraries and I2C dac for audio 
-//--- audio dac interface control ports---These are set depending on the two defines above..
-
- #if defined (_AudioDAC) || defined(_AudioNoDAC)
-   #define _Audio          //RX/D9, D8, and D4 pins.defined below    
-   
-                           //but needs to be defined in order for NoDac to work
-   #ifdef ESP32                   // tryalso18/19?
-        #define I2SDAC_LRC 21    //Pin GPio 21 is SDA on esp 32
-        #define I2SDAC_DIN 22 //try rx pin ?? // 22==pin GPio 22(SCL ) on ESP32
-    #else
-        #define I2SDAC_LRC 0    //4 ==is the  "D" number ie 4 is D4 is used in no dac because of default ESP8266 i2s settings (is i2s clock?) but can be used as input if you need the pin ..
-        #define I2SDAC_DIN 9   //D9/rx used for both Audio types, is main transistor base drive for NoDac USE a Resistor to the Base. I found 10K fine. (makes noises whilst uploading!!)
-   #endif
- #endif
- #ifdef _AudioDAC
-     #define I2SDAC_CLK 8 //D8 used by DAC version only
- #endif 
-//-- end of audio defines
-
-
-
-// Setup Defines for completely blank hardware
-//from ver 15 equivalents to these defines should be automatically set if the eeprom is empty.. So they may not be needed, but if you have to reset anything, they may be useful.
-//If used, After running ONCE with them set, comment them out and re-program so that the rocrail i/o,  loco addr and pin functions etc can be set via rocrail
-
-//#define _ForceRocnetNodeID_to_subIPL //stops the ability of rocnet to change the node number, but prevents the possibility of two nodes having same node number
-//#define _ForceDefaultEEPROM //
-//#define _Force_Loco_Addr 3 
 
 //#define _DefaultPrintOut 1 //Set this so you can capture your own "defaults" and put them in the RocSubs:SetDefaultSVs() function 
 
- //---------------------------------------------------------------end of main compiler #defines--------------
- //old define
-
- //#define _RFID 1  //if using rfid reader THIS IS A VERY OLD part of the ESPWIFI code and not tested recently. 
- //               It adds a RFID reader and sends sensor messages depending on the RFID tag "read.
- //               it's interaction with the new WiRocS code is UNTESTED.
-//------------------------------------------------------------------
 
  //#define _Use_Wifi_Manager //uncomment this to use a "standard" fixed SSID and Password
  
@@ -150,34 +97,6 @@
 
   #endif
 
-#ifndef _LocoPWMDirPort
-//---------------OLED types-- not compatible with pwm lococ- uses the same pins
-//
-#define _OLED             // define oleds, not properly tested for stability if off , normally left defined..// Saves 42kB program on ESP8266 if NOT defined (for OTA)
-
-//Default is: Display 1-4 write to OLED 1 (Address 60)on primary I2C bus which is 64 high
-//            Display 5-8 write to OLED 2 (Address 61)on primary I2C bus
-// IF address 60 seen on SECONDARY BUS Then:
-//    Display 1-2  write to OLED 3 (Address 60)on secondary I2C bus which is 32 high
-//    Display 3-4  write to OLED 4 (Address 60)on primary I2C bus
-
-
-
- //--------------------------------OLED I2C------------------- 
- // These OLED SCL/SDA pin definitions use GPIO numbers 
-  #ifdef ESP32
- static const uint8_t OLED_SDA = 4;  //gpio 4 on ESP32 Devkit  !! NB gpio 0 is not exposed on my Esp32 Devkit V1 (but is on some other boards..)
- static const uint8_t OLED_SCL = 5;  //gpio 5
- static const uint8_t OLED_SDA2 = 32;  //my rocrail port 13
- static const uint8_t OLED_SCL2 = 33;  //my rocrail port 14 
- #else
- static const uint8_t OLED_SDA2 = 5;  //D1 is 5 //used only for display 3
- static const uint8_t OLED_SCL2 = 4;//d2 is 4
- static const uint8_t OLED_SDA = 0;  //  known as D3 on esp 8266 
- static const uint8_t OLED_SCL = 2;  // known as D4 on esp 8266 AND IS the SignalLed, so will flash regularly if any OLED is present on I2C bus!
- #endif
- 
-#endif //not pwm loco 
 
 
 

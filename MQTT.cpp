@@ -1,3 +1,7 @@
+
+
+#include <SD.h>
+
 #include "MQTT.h"
 #include <Arduino.h> //needed 
 //#include "Directives.h"
@@ -264,12 +268,9 @@ extern bool ScanForBroker;
 extern int BrokerAddr;
 extern void WriteWiFiSettings();
 extern uint8_t SW_REV;
-extern void OLED_4_RN_displays(int OLed_x,String L1,String L2,String L3,String L4);
-extern void SetFont(uint8_t Disp,uint8_t Font);
 
 extern void StringToChar(char *line, String input);
-extern void FlashMessage (String msg, int Repeats, int ON, int Off);
-extern void OLEDS_Display(String L1,String L2,String L3,String L4);
+
 
 uint32_t TimeLimit;
 void reconnect(void) {
@@ -295,8 +296,8 @@ void reconnect(void) {
       ConnectedNow=client.connect(ClientName);//Attempt to connect   takes about 15 secs per unsucessful check (set in MQTT_SOCKET_TIMEOUT PubSubClient.h
 
       if (ConnectedNow) {// I want this Connected message before the flash message
-            Serial.print("WiRocS ");Serial.print(MSGText2);Serial.print("MQTT Connected");Serial.println(MSGText1);}
-            else{FlashMessage(DebugMsg, 2, 100, 100);} // flash "trying" mmessage in OLED (also sends to Serial port and mqtt debug)
+            Serial.print("WiRocS ");Serial.print(MSGText2);Serial.print("MQTT Connected");Serial.println(MSGText1);
+      }
       
       if (ConnectedNow) {
             // Serial.print("WiRocS ");Serial.print(MSGText2);Serial.print("MQTT Connected");Serial.println(MSGText1);
@@ -308,7 +309,6 @@ void reconnect(void) {
             //can advise this node is connected now:
             Serial.printf ( DebugMsg, "%s Connected at:%d.%d.%d.%d Found MQTT at %d",ClientName,ip0,ip1,subIPH,subIPL,mosquitto[3]);
             cx=sprintf( DebugMsg, "IP:%d Broker OK :%d.%d.%d.%d",subIPL,mosquitto[0],mosquitto[1],mosquitto[2],mosquitto[3]);
-            FlashMessage(DebugMsg, 4, 500, 100);  //Flash message sends to oled displays (and sends a MQTT debugmsg !!) 
                  
             //... and now subscribe to topics  http://wiki.rocrail.net/doku.php?id=rocnet:rocnet-prot-en#groups
             client.subscribe("rocnet/lc", 1 ); //loco
